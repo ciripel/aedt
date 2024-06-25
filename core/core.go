@@ -10,7 +10,7 @@ import (
 )
 
 func Encrypt(flag string) {
-	mnemonicIntValues, passwordAsciiExtended, wv, err := processFlag(flag)
+	mnemonicIntValues, passwordAsciiExtended, wv, err := processFlag(flag, true)
 	if err != nil {
 		return
 	}
@@ -35,7 +35,7 @@ func Encrypt(flag string) {
 }
 
 func Decrypt(flag string) {
-	mnemonicIntValues, passwordAsciiExtended, wv, err := processFlag(flag)
+	mnemonicIntValues, passwordAsciiExtended, wv, err := processFlag(flag, false)
 	if err != nil {
 		return
 	}
@@ -64,7 +64,7 @@ func Decrypt(flag string) {
 	fmt.Printf("Decrypted RESULT=%s%s%s\n", constants.ColorGreen, newMnemonicStr, constants.ColorReset)
 }
 
-func processFlag(flag string) (mnemonicIntValues []int, passwordAsciiExtended []int, wv map[int]string, err error) {
+func processFlag(flag string, encrypt bool) (mnemonicIntValues []int, passwordAsciiExtended []int, wv map[int]string, err error) {
 	flags := strings.Split(flag, ":")
 	if len(flags) < 2 {
 		slog.Error("you forgot to enter a password. Passwords must be min 8 characters")
@@ -72,7 +72,7 @@ func processFlag(flag string) (mnemonicIntValues []int, passwordAsciiExtended []
 		return
 	}
 	mnemonicStr := flags[0]
-	if !bip39.IsMnemonicValid(mnemonicStr) {
+	if encrypt && !bip39.IsMnemonicValid(mnemonicStr) {
 		slog.Error("mnemonic is invalid")
 		err = constants.ErrInvalidMnemonic
 		return
