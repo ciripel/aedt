@@ -7,33 +7,11 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ciripel/aedt/constants"
 	"github.com/ciripel/aedt/wordslist"
 )
 
 var (
-	// Some bitwise operands for working with big.Ints
-	shift11BitsMask = big.NewInt(2048)
-	bigOne          = big.NewInt(1)
-
-	// used to isolate the checksum bits from the entropy+checksum byte array
-	wordLengthChecksumMasksMapping = map[int]*big.Int{
-		12: big.NewInt(15),
-		15: big.NewInt(31),
-		18: big.NewInt(63),
-		21: big.NewInt(127),
-		24: big.NewInt(255),
-	}
-
-	// used to use only the desired x of 8 available checksum bits.
-	// 256 bit (word length 24) requires all 8 bits of the checksum,
-	// and thus no shifting is needed for it (we would get a divByZero crash if we did)
-	wordLengthChecksumShiftMapping = map[int]*big.Int{
-		12: big.NewInt(16),
-		15: big.NewInt(8),
-		18: big.NewInt(4),
-		21: big.NewInt(2),
-	}
-
 	// wordList is the set of words to use
 	wordList []string
 
@@ -52,8 +30,8 @@ func init() {
 // that is set is used package-wide.
 func SetWordList(list []string) {
 	wordList = list
-	wordMap = make(map[string]int, 2048)
-	indexMap = make(map[int]string, 2048)
+	wordMap = make(map[string]int, constants.NUMBER_OF_WORDS)
+	indexMap = make(map[int]string, constants.NUMBER_OF_WORDS)
 	for i, v := range wordList {
 		wordMap[v] = i
 		indexMap[i] = v
@@ -69,7 +47,7 @@ func IsMnemonicValid(mnemonic string) bool {
 func entropyFromMnemonic(mnemonic string) ([]byte, error) {
 	mnemonicSlice, isValid := splitMnemonicWords(mnemonic)
 	if !isValid {
-		return nil, errInvalidMnemonic
+		return nil, constants.ErrInvalidMnemonic
 	}
 
 	// Decode the words into a big.Int.
@@ -81,16 +59,16 @@ func entropyFromMnemonic(mnemonic string) ([]byte, error) {
 		}
 		var wordBytes [2]byte
 		binary.BigEndian.PutUint16(wordBytes[:], uint16(index))
-		b = b.Mul(b, shift11BitsMask)
+		b = b.Mul(b, constants.Shift11BitsMask)
 		b = b.Or(b, big.NewInt(0).SetBytes(wordBytes[:]))
 	}
 
 	// Build and add the checksum to the big.Int.
 	checksum := big.NewInt(0)
-	checksumMask := wordLengthChecksumMasksMapping[len(mnemonicSlice)]
+	checksumMask := constants.WordLengthChecksumMasksMapping[len(mnemonicSlice)]
 	checksum = checksum.And(b, checksumMask)
 
-	b.Div(b, big.NewInt(0).Add(checksumMask, bigOne))
+	b.Div(b, big.NewInt(0).Add(checksumMask, constants.BigOne))
 
 	// The entropy is the underlying bytes of the big.Int. Any upper bytes of
 	// all 0's are not returned so we pad the beginning of the slice with empty
@@ -102,12 +80,12 @@ func entropyFromMnemonic(mnemonic string) ([]byte, error) {
 	entropyChecksumBytes := computeChecksum(entropy)
 	entropyChecksum := big.NewInt(int64(entropyChecksumBytes[0]))
 	if l := len(mnemonicSlice); l != 24 {
-		checksumShift := wordLengthChecksumShiftMapping[l]
+		checksumShift := constants.WordLengthChecksumShiftMapping[l]
 		entropyChecksum.Div(entropyChecksum, checksumShift)
 	}
 
 	if checksum.Cmp(entropyChecksum) != 0 {
-		return nil, errChecksumIncorrect
+		return nil, constants.ErrChecksumIncorrect
 	}
 
 	return entropy, nil
@@ -149,7 +127,5 @@ type wordsKeys map[string]int
 type wordsValues map[int]string
 
 func GetWords() (wordsKeys, wordsValues) {
-
 	return wordMap, indexMap
-
 }
