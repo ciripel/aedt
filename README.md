@@ -1,4 +1,4 @@
-## Amitabha Encrytion/Decryption Tool
+## Amitabha Encryption/Decryption Tool
 
 AEDT is a simple cli tool that will encrypt your mnemonic seed with a given password you provide in the same time with the mnemonic.
 
